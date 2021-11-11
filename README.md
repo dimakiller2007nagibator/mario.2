@@ -1,0 +1,1 @@
+# mario.2 movement: arrows to the right (movement to the right) and an arrow to the left (movement to the left). The game starts after pressing the Enter key. In the game you need to collect coins while avoiding the enemy. Each touch of the enemy takes 1 life from you. You have 3 lives in total. At the end of the game, you can start it for free.
