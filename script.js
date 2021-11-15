@@ -1,169 +1,237 @@
-let canvas = document.getElementById('canvas');
+const canvas = document.getElementById('canvas');
 let ctx = canvas.getContext('2d');
 
-//----------------звуки----------------
 let soundStep = new Audio('./sound/step.mp3');
-//----------------изображения----------------
-let backgroundImage = new Image();
+
+
+let picBackground = new Image();
+picBackground.src = "./pic/background.jpg";
 
 let picPlayerLeft = new Image();
+picPlayerLeft.src = "./pic/playerLeft.png";
 let picPlayerRight = new Image();
-
-let picEnemyLeft = new Image();
-let picEnemyRight = new Image();
-
-let picLife = new Image();
-let picCoin = new Image();
-
-backgroundImage.src = './pic/background.png';
-picLife.src = "./pic/picLife.png";
-picPlayerLeft.src = './pic/playerLeft.png';
-picPlayerRight.src = './pic/playerRight.png';
-picCoin.src = './pic/picCoin.png'
-picEnemyLeft.src = './pic/enemyLeft.png';
-picEnemyRight.src = './pic/enemyRight.png';
+picPlayerRight.src = "./pic/playerRight.png";
 
 let arrPicPlayer = [];
-    arrPicPlayer['right'] = picPlayerRight;
-    arrPicPlayer['left'] = picPlayerLeft;
+arrPicPlayer['left'] = picPlayerLeft;
+arrPicPlayer['right'] = picPlayerRight;
+
+let picEnemyLeft = new Image();
+picEnemyLeft.src = "./pic/enemyLeft.png";
+let picEnemyRight = new Image();
+picEnemyRight.src = "./pic/enemyRight.png";
+
+let picLife = new Image();
+picLife.src = "./pic/picLife.png";
+
+let picCoin = new Image();
+picCoin.src = "./pic/picCoin.png";
 
 let arrPicEnemy = [];
-    arrPicEnemy['right'] = picEnemyRight;
-    arrPicEnemy['left'] = picEnemyLeft;
+arrPicEnemy['left'] = picEnemyLeft;
+arrPicEnemy['right'] = picEnemyRight;
 
 ctx.canvas.width = window.innerWidth;
 ctx.canvas.height = window.innerHeight;
 
-function rescaleImg(img, percent){
-    if(img.height > img.width){
-        let k = img.height / img.width;
-        img.width = window.innerWidth * percent / 100;
-        img.height = img.width * k;
-    } else {
-        let k = img.width / img.height;
+function generateRandomPosition(pic, xMin, xMax, yMin, yMax) {
+    let x = Math.random() * ((xMax - pic.width) - xMin) + xMin,
+        y = Math.random() * ((yMax - pic.height) - yMin) + yMin;
+    return [x, y];
+}
+let positionCoin = [0, 0];
+
+function newPositionCoin() {
+    positionCoin = generateRandomPosition(picCoin, 0, innerWidth, innerHeight * 0.7, innerHeight * 0.88);
+}
+
+function resizeImg(img, percent) {
+    let prop;
+    if (img.width > img.height) {
+        prop = img.width / img.height;
         img.height = window.innerHeight * percent / 100;
-        img.width = img.height * k;
+        img.width = img.height * prop;
+    } else {
+        prop = img.height / img.width;
+        img.width = window.innerHeight * percent / 100;
+        img.height = img.width * prop;
     }
 }
-
-let xPlayer = 60, yPlayer = 475,
-    speedPlayer = 5, navigationPlayer = 'right';
-    xEnemy = 810, yEnemy = 526, speedEnemy = 15, navigationEnemy = 'left';
-    'left', countLife=17, xCoin=0, yCoin=0;
 let startGame = false;
+let xPlayer = 50,
+    yPlayer = 665,
+    speedPlayer = 5,
+    speedEnemy = 50,
+    navPlayer = 'right',
+    navEnemy = 'left',
+    xEnemy = 750,
+    yEnemy = 680,
+    boardPicPlayer, boardPicEnemy,
+    boardPicCoin, countLife = 3,
+    countCoin = 0;
 
-function randomPosition(){
-    let xRAndom = Math.random()*(innerWidth-pic.width);
-    let yRAndom = Math.random()*(innerHeight-pic.height);
-    return [xRAndom,yRandom];
-}
-
-function hitBox(pic, x, y){
-    let picBottom, picRight;
+function boardPic(pic, x, y) {
+    let picRight, picBottom;
     picRight = x + pic.width;
     picBottom = y + pic.height;
-    return [picBottom, picRight];
+    return [picRight, picBottom]
 }
-let hitBoxPlayer;
-let hitBoxEnemy;
 
-function draw(){
-    let picPlayer = arrPicPlayer[navigationPlayer];
-    let picEnemy = arrPicEnemy[navigationEnemy];
-    rescaleImg(picPlayer, 6);
-    rescaleImg(picEnemy, 8);
-    rescaleImg(picLife,5);
-    hitBoxPlayer = hitBox(picPlayer, xPlayer, yPlayer);
-    hitBoxEnemy = hitBox(picEnemy, xEnemy, yEnemy);
-
-    ctx.drawImage(backgroundImage, 0, 0, window.innerWidth, window.innerHeight);
-    ctx.drawImage(picPlayer, xPlayer, yPlayer, picPlayer.width, picPlayer.height);
-    ctx.drawImage(picEnemy, xEnemy, yEnemy, picEnemy.width, picEnemy.height);
-    ctx.drawImage(picCoin, xCoin, yCoin, picCoin.width, picCoin.height);
-    for(let i=0; i<countLife;i++){
-        let xLife = innerWidth*0.05+i*picEnemy.width+0.01;
-        let yLife = innerHeight*0.05;
-        ctx.drawImage(picLife, xLife, yLife, picLife.width, picLife.height);
+function checkCollision(x1, x2, y1, y2, r1, r2, b1, b2) {
+    if (r1 > x2 && r2 > x1 && y1 < b2 && y2 < b1) {
+        return true;
+    } else {
+        return false;
     }
-    
+}
 
-    function moveEnemy(){
-        function collisionEnemy(){
-            if(hitBoxPlayer[1]>xEnemy && hitBoxEnemy[1]>xPlayer &&
-                yPlayer<hitBoxEnemy[0] && yEnemy<hitBoxPlayer[0]){
-                  countLife--;
-                    startPosition();
-                    if(countLife<=0){
-                        soundStep.pause();
-                        let newTry = confirm("вы всрали 100000000000000000 БИТКОИНОВ=ВЫ ЛОООООООООХ!!!!!!");
-                        if(newTry){
+
+function draw() {
+    function printText(text, x, y, size, color) {
+        ctx.font = size + "px Arial";
+        ctx.fillStyle = color;
+        ctx.fillText(text, x, y);
+    }
+
+    function drawPath(paht, colorLine, Fill, stroke) {
+        ctx.strokeStyle = colorLine;
+        ctx.fillStyle = Fill;
+        ctx.lineWidth = stroke;
+        ctx.stroke(paht);
+        ctx.fill(paht);
+    }
+    if (!startGame) {
+        let buttonStart = new Path2D;
+
+        function drawButton(strokecolor, fillcolor) {
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+            ctx.drawImage(picBackground, 0, 0, window.innerWidth, window.innerHeight);
+            let widthButton = innerWidth * 0.2, heightButton = innerHeight * 0.1;
+
+            let xButton = innerWidth * 0.5 - widthButton/2,
+                yButton = innerHeight * 0.5 - heightButton/2;
+
+            buttonStart.rect(xButton, yButton, widthButton, heightButton);
+            drawPath(buttonStart, strokecolor, fillcolor, 10);
+            let buttonText = 'START'
+            printText(buttonText, xButton+widthButton/2-innerWidth*0.02, yButton+heightButton/2+innerHeight*0.01, 25, "Black")
+        }
+        drawButton('DarkBlue', 'Blue');
+        canvas.addEventListener('mousemove',(event)=>{
+            if(ctx.isPointInPath(buttonStart,event.clientX,event.clientY)){
+                drawButton('mediumtuquoise','aqua');
+            }else{
+                drawButton('DarkBlue','Blue');
+            }
+        })
+    } else {
+
+
+        let picPlayer = arrPicPlayer[navPlayer];
+        let picEnemy = arrPicEnemy[navEnemy];
+        resizeImg(picPlayer, 8);
+        resizeImg(picEnemy, 5);
+        resizeImg(picLife, 5);
+        resizeImg(picCoin, 3);
+        boardPicPlayer = boardPic(picPlayer, xPlayer, yPlayer);
+        boardPicEnemy = boardPic(picEnemy, xEnemy, yEnemy);
+        boardPicCoin = boardPic(picCoin, positionCoin[0], positionCoin[1]);
+
+        function startPosition() {
+
+            xPlayer = window.innerWidth * 0.05;
+            yPlayer = window.innerHeight * 0.88 - picPlayer.height;
+
+            xEnemy = window.innerWidth * 0.85;
+            yEnemy = window.innerHeight * 0.88 - picEnemy.height;
+        }
+
+        function moveEnemy() {
+            function collisionEnemy() {
+                if (checkCollision(xPlayer, xEnemy, yPlayer, yEnemy, boardPicPlayer[0], boardPicEnemy[0], boardPicPlayer[1], boardPicEnemy[1])) {
+                    countLife--;
+                    if (countLife <= 0) {
+                        let newGame = confirm('GameOver:(\nХотите начать заново?');
+                        if (newGame) {
                             countLife = 3;
-                        }
-                        else{
-                            clearTimeout(moveEnemyTimer);
+                        } else {
+                            clearTimeout(timerMoveEnemy);
+                            startPosition();
                             return;
                         }
                     }
+                    startPosition();
                 }
-        }
-        collisionEnemy();
-        let moveEnemyTimer = setTimeout(()=>{
-            if(xEnemy > hitBoxPlayer[1]){
-                xEnemy--;
-                navigationEnemy='left';
-            } else if(hitBoxEnemy[1] >
-                 xPlayer){
-                xEnemy++;
-                navigationEnemy='right';
-            } else{
-               // добавить звук когда рядом
             }
-            draw();
+            collisionEnemy();
+            let timerMoveEnemy = setTimeout(() => {
+                if (xEnemy > (xPlayer + picPlayer.width)) {
+                    xEnemy--;
+                    navEnemy = 'left';
+                } else if ((xEnemy + picEnemy.width) < xPlayer) {
+                    xEnemy++;
+                    navEnemy = 'right';
+                }
+                draw();
+                moveEnemy();
+            }, speedEnemy);
+        }
+
+        if (startGame) {
+            startPosition();
+            newPositionCoin();
             moveEnemy();
-        }, speedEnemy)
-    }
-    if(startGame){
-        startPosition();
-        moveEnemy();
-        xCoin = randomPosition(picCoin)[0]
-        yCoin = randomPosition(picCoin)[1]
-        startGame = false;
-    }
+            startGame = false;
+        }
 
-    function startPosition(){
-        xPlayer = window.innerWidth*0.05;
-        yPlayer = window.innerHeight*0.78 - picPlayer.height;
-        xEnemy = window.innerWidth*0.85;
-        yEnemy = window.innerHeight*0.78 - picEnemy.height;
-    } 
+        ctx.drawImage(picBackground, 0, 0, window.innerWidth, window.innerHeight);
+        ctx.drawImage(picPlayer, xPlayer, yPlayer, picPlayer.width, picPlayer.height);
+        ctx.drawImage(picEnemy, xEnemy, yEnemy, picEnemy.width, picEnemy.height);
+        ctx.drawImage(picCoin, positionCoin[0], positionCoin[1], picCoin.width, picCoin.height);
+
+        for (let i = 0; i < countLife; i++) {
+            let yLife = innerHeight * 0.05;
+            let xLife = innerWidth * 0.05 + picLife.width * i;
+            ctx.drawImage(picLife, xLife, yLife, picLife.width, picLife.height);
+        }
+
+        function collisionCoin() {
+            if (checkCollision(xPlayer, positionCoin[0], yPlayer, positionCoin[1], boardPicPlayer[0], boardPicCoin[0], boardPicPlayer[1], boardPicCoin[1])) {
+                countCoin++;
+                newPositionCoin();
+            }
+        }
+        collisionCoin();
+        printText("Count = " + countCoin, innerWidth * 0.05, innerHeight * 0.1 + picLife.height, 14, "Green")
+    }
 }
+picEnemyRight.onload = picEnemyLeft.onload = picPlayerLeft.onload = picPlayerRight.onload = picBackground.onload = draw;
 
-document.addEventListener('keydown',(event)=>{
-    let keyPressed = event.code;
-    if(keyPressed=="KeyD"){
-        xPlayer += speedPlayer;
-        navigationPlayer = 'right';
-        soundStep.play();
-    } else if(keyPressed=="KeyA"){
-        xPlayer -= speedPlayer;
-        navigationPlayer = 'left';
-        soundStep.play();
-    } else if(keyPressed=='Enter'){
-        startGame = true;
+document.addEventListener('keydown', (event) => {
+    let KeyPressed = event.code;
+    switch (KeyPressed) {
+        case 'ArrowLeft':
+            xPlayer -= speedPlayer;
+            navPlayer = 'left';
+            soundStep.play();
+            break;
+        case 'ArrowRight':
+            xPlayer += speedPlayer;
+            navPlayer = 'right';
+            soundStep.play();
+            break;
     }
     draw();
 });
 
-document.addEventListener('keyup',(event)=>{
-    let keyPressed = event.code;
-    switch(keyPressed){
-        case 'KeyA':
+document.addEventListener('keyup', (event) => {
+    let KeyPressed = event.code;
+    switch (KeyPressed) {
+        case 'ArrowLeft':
             soundStep.pause();
             break;
-        case 'KeyD':
+        case 'ArrowRight':
             soundStep.pause();
             break;
     }
-})
-
-picLife.onload =backgroundImage.onload = picPlayerRight.onload = picPlayerLeft.onload = picEnemyRight.onload = picEnemyLeft.onload = draw;
+});
